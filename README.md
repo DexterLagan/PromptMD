@@ -70,6 +70,7 @@ Works in all modern browsers that support:
 - localStorage
 - ES6+ JavaScript
 - CSS Grid/Flexbox
-```
 
-This README provides a clear overview of what Prompt Genie is, its key features, and how to get started, while maintaining a professional and concise tone. Would you like me to modify any section or add additional information?
+## License
+
+MIT
