@@ -1,6 +1,6 @@
-# Prompt Genie
+# PromptMD
 
-Prompt Genie is a lightweight, browser-based prompt management tool that helps you create, organize, and edit text prompts with real-time Markdown preview. Built as a single HTML file with no external dependencies (except marked.js for Markdown rendering), it works entirely in your browser and stores all data locally.
+PromptMD is a lightweight, browser-based prompt management tool that helps you create, organize, and edit text prompts with real-time Markdown preview. Built as a single HTML file with no external dependencies (except marked.js for Markdown rendering), it works entirely in your browser and stores all data locally.
 
 ## Downloads
 You can <b>download</b> the latest release [HERE](https://github.com/DexterLagan/PromptMD/releases/).
