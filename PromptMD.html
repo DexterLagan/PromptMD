@@ -1,0 +1,1397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt Genie</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+    <style>
+        /* Base styles */
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            line-height: 1.5;
+            margin: 0;
+            padding: 20px;
+            background: #f0f0f0;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .main-table {
+            width: 100%;
+            height: calc(100vh - 40px);
+            border-spacing: 0;
+            border-collapse: separate;
+            table-layout: fixed;
+            position: relative;
+        }
+
+        .main-table td {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+            vertical-align: top;
+        }
+
+        .main-table td:first-child {
+            padding-right: 10px;
+        }
+
+        .main-table td:last-child {
+            padding-left: 10px;
+        }
+
+        /* Left pane layout */
+        .left-pane-content {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-shrink: 0;
+        }
+
+        .header-buttons {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        /* Switch styles */
+        .switch-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-right: 8px;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #e2e8f0;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #2563eb;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+
+        .switch-label {
+            font-size: 14px;
+            color: #4b5563;
+        }
+
+        /* Search bar styles */
+        .search-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-shrink: 0;
+        }
+
+        .search-input {
+            flex-grow: 1;
+            padding: 8px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            font-size: 14px;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
+
+        /* Tag styles */
+        .tag-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-bottom: 8px;
+            min-height: 28px;
+        }
+
+        .tag {
+            background: #e2e8f0;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .tag-input {
+            padding: 2px 8px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-right: 4px;
+            min-width: 60px;
+        }
+
+        .tag-input:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
+
+        .tag-remove {
+            cursor: pointer;
+            color: #64748b;
+        }
+
+        .tag-remove:hover {
+            color: #ef4444;
+        }
+
+        /* Prompt list styles */
+        .prompt-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+
+        .prompt-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f8fafc;
+            border-radius: 4px;
+            border: 1px solid #e2e8f0;
+            cursor: move;
+            position: relative;
+        }
+
+        .prompt-item:hover {
+            background: #f1f5f9;
+        }
+
+        .prompt-item.selected {
+            border-color: #2563eb;
+            background: #eff6ff;
+        }
+
+        .prompt-item.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+
+        /* Delete button */
+        .delete-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: transparent;
+            border: none;
+            color: #64748b;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            opacity: 0;
+            transition: opacity 0.2s, background-color 0.2s;
+            font-size: 18px;
+            line-height: 1;
+            width: 24px;
+            height: 24px;
+        }
+
+        .prompt-item:hover .delete-btn {
+            opacity: 1;
+        }
+
+        .delete-btn:hover {
+            background: #fee2e2;
+            color: #ef4444;
+        }
+
+        /* Bottom buttons */
+        .bottom-buttons {
+            display: flex;
+            gap: 8px;
+            padding-top: 10px;
+            border-top: 1px solid #e2e8f0;
+            flex-shrink: 0;
+        }
+
+        .action-btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            height: 32px;
+            border-radius: 16px;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 0 12px;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+        }
+
+        .new-prompt-btn {
+            width: 32px;
+            font-size: 20px;
+        }
+
+        .action-btn:hover {
+            background: #1d4ed8;
+        }
+
+        .action-btn:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        /* Hidden file input */
+        #importInput {
+            display: none;
+        }
+
+        /* Divider */
+        .divider {
+            position: fixed;
+            top: 20px;
+            bottom: 20px;
+            width: 20px;
+            cursor: col-resize;
+            z-index: 100;
+            background: transparent;
+            transition: background-color 0.2s;
+            pointer-events: auto;
+        }
+
+        .divider:hover, .divider.dragging {
+            background: rgba(37, 99, 235, 0.1);
+        }
+
+        .divider::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            width: 4px;
+            background: #e2e8f0;
+            transform: translateX(-50%);
+            transition: background-color 0.2s;
+        }
+
+        .divider:hover::after, .divider.dragging::after {
+            background: #2563eb;
+        }
+
+        /* Headers */
+        h1 {
+            color: #2563eb;
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        /* Prompt content */
+        .prompt-title {
+            font-weight: 600;
+            color: #2563eb;
+            margin-bottom: 5px;
+            cursor: text;
+            display: inline-block;
+            padding: 2px 4px;
+            margin: -2px -4px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+        }
+
+        .prompt-title:hover {
+            border-color: #2563eb;
+            background: rgba(37, 99, 235, 0.1);
+        }
+
+        /* Styles for markdown elements in title */
+        .prompt-title * {
+            display: inline;
+            margin: 0;
+            padding: 0;
+            border: 0;
+            font-size: inherit;
+            line-height: inherit;
+            color: inherit;
+            font-weight: inherit;
+        }
+        
+        .prompt-title p {
+            display: inline;
+        }
+        
+        .prompt-title code {
+            background: rgba(37, 99, 235, 0.1);
+            padding: 0.1em 0.2em;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+
+        .prompt-title-edit {
+            font-size: inherit;
+            font-weight: inherit;
+            color: inherit;
+            border: 1px solid #2563eb;
+            border-radius: 4px;
+            padding: 2px 4px;
+            margin: -2px -4px;
+            background: white;
+            min-width: 100px;
+        }
+
+        .prompt-preview {
+            color: #4b5563;
+            font-size: 0.9rem;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            margin-right: 24px;
+        }
+
+        /* Styles for markdown elements in preview */
+        .prompt-preview * {
+            display: inline;
+            margin: 0;
+            padding: 0;
+            border: 0;
+            font-size: inherit;
+            line-height: inherit;
+        }
+        
+        .prompt-preview p {
+            display: inline;
+        }
+        
+        .prompt-preview code {
+            background: #f1f5f9;
+            padding: 0.1em 0.2em;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        
+        .prompt-preview strong,
+        .prompt-preview b {
+            font-weight: 600;
+        }
+        
+        .prompt-preview em,
+        .prompt-preview i {
+            font-style: italic;
+        }
+
+        .prompt-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 8px;
+        }
+
+        .prompt-tag {
+            background: #e2e8f0;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            color: #4b5563;
+        }
+
+        /* Editor */
+        .editor-content {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        textarea {
+            width: 100%;
+            height: 100%;
+            padding: 8px;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+            resize: none;
+            font-family: inherit;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
+
+        /* Markdown preview styles */
+        .markdown-preview {
+            width: 100%;
+            height: 100%;
+            padding: 8px;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            background: white;
+            display: none;
+        }
+
+        .markdown-preview.active {
+            display: block;
+        }
+
+        textarea.hidden {
+            display: none;
+        }
+
+        /* Markdown styling */
+        .markdown-preview h1 { font-size: 2em; margin-bottom: 0.5em; }
+        .markdown-preview h2 { font-size: 1.5em; margin-bottom: 0.5em; }
+        .markdown-preview h3 { font-size: 1.17em; margin-bottom: 0.5em; }
+        .markdown-preview p { margin-bottom: 1em; }
+        .markdown-preview ul, .markdown-preview ol { margin-bottom: 1em; padding-left: 2em; }
+        .markdown-preview code { background: #f1f5f9; padding: 0.2em 0.4em; border-radius: 3px; }
+        .markdown-preview pre { background: #f1f5f9; padding: 1em; border-radius: 4px; overflow-x: auto; }
+        .markdown-preview blockquote { border-left: 4px solid #e2e8f0; margin: 0; padding-left: 1em; color: #64748b; }
+        .markdown-preview img { max-width: 100%; height: auto; }
+        .markdown-preview table { border-collapse: collapse; width: 100%; margin-bottom: 1em; }
+        .markdown-preview th, .markdown-preview td { border: 1px solid #e2e8f0; padding: 0.5em; }
+        .markdown-preview hr { border: none; border-top: 1px solid #e2e8f0; margin: 1em 0; }
+
+        /* Shortcuts modal */
+        .shortcuts-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .shortcuts-modal {
+            background: white;
+            padding: 24px;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .shortcuts-grid {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 8px 16px;
+            margin-top: 16px;
+        }
+
+        .shortcut-key {
+            font-family: monospace;
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-align: right;
+        }
+
+        /* Animations */
+        @keyframes copyFeedback {
+            0% { transform: scale(1); }
+            50% { transform: scale(0.95); }
+            100% { transform: scale(1); }
+        }
+
+        .copy-feedback {
+            animation: copyFeedback 0.2s ease-in-out;
+        }
+
+        /* Modal tabs */
+        .modal-tabs {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 8px;
+        }
+
+        .modal-tab {
+            background: none;
+            border: none;
+            padding: 4px 8px;
+            cursor: pointer;
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .modal-tab.active {
+            color: #2563eb;
+            border-bottom: 2px solid #2563eb;
+            margin-bottom: -9px;
+        }
+
+        /* Markdown guide styles */
+        .markdown-guide {
+            display: none;
+        }
+
+        .markdown-guide.active {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 8px 16px;
+        }
+
+        .markdown-example {
+            font-family: monospace;
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            white-space: pre;
+        }
+    </style>
+</head>
+<body>
+    <!-- Help modal -->
+    <div class="shortcuts-overlay" id="shortcutsOverlay">
+    <div class="shortcuts-modal">
+        <h2>Help</h2>
+        <div class="modal-tabs">
+            <button class="modal-tab active" onclick="switchModalTab('shortcuts')">Keyboard Shortcuts</button>
+            <button class="modal-tab" onclick="switchModalTab('markdown')">Markdown Guide</button>
+        </div>
+        <div id="shortcutsGrid" class="shortcuts-grid">
+            <div class="shortcut-key">Ctrl + N</div>
+            <div>Create new prompt</div>
+            <div class="shortcut-key">Ctrl + S</div>
+            <div>Force save current prompt</div>
+            <div class="shortcut-key">Ctrl + F</div>
+            <div>Focus search box</div>
+            <div class="shortcut-key">Ctrl + C</div>
+            <div>Copy current prompt</div>
+            <div class="shortcut-key">Ctrl + M</div>
+            <div>Toggle Markdown preview</div>
+            <div class="shortcut-key">Delete</div>
+            <div>Delete selected prompt</div>
+            <div class="shortcut-key">?</div>
+            <div>Show/hide shortcuts</div>
+            <div class="shortcut-key">Esc</div>
+            <div>Close modal / Cancel edit</div>
+        </div>
+        <div id="markdownGuide" class="markdown-guide">
+            <div class="markdown-example"># Heading 1</div>
+            <div><h1 style="margin: 0;">Heading 1</h1></div>
+            
+            <div class="markdown-example">## Heading 2</div>
+            <div><h2 style="margin: 0;">Heading 2</h2></div>
+            
+            <div class="markdown-example">**bold**</div>
+            <div><strong>bold</strong></div>
+            
+            <div class="markdown-example">*italic*</div>
+            <div><em>italic</em></div>
+            
+            <div class="markdown-example">`code`</div>
+            <div><code style="background: #f1f5f9; padding: 0.2em 0.4em; border-radius: 3px;">code</code></div>
+            
+            <div class="markdown-example">```
+code block
+```</div>
+            <div><pre style="background: #f1f5f9; padding: 0.5em; border-radius: 4px; margin: 0; font-size: 0.9em;">code block</pre></div>
+            
+            <div class="markdown-example">[link](url)</div>
+            <div><a href="#" style="color: #2563eb; text-decoration: underline;">link</a></div>
+            
+            <div class="markdown-example">* item
+* item</div>
+            <div style="margin: -0.5em 0;">
+                <ul style="margin: 0;">
+                    <li>item</li>
+                    <li>item</li>
+                </ul>
+            </div>
+            
+            <div class="markdown-example">1. item
+2. item</div>
+            <div style="margin: -0.5em 0;">
+                <ol style="margin: 0;">
+                    <li>item</li>
+                    <li>item</li>
+                </ol>
+            </div>
+            
+            <div class="markdown-example">> quote</div>
+            <div><blockquote style="margin: 0; padding-left: 1em; border-left: 4px solid #e2e8f0; color: #64748b;">quote</blockquote></div>
+            
+            <div class="markdown-example">---</div>
+            <div><hr style="margin: 0.5em 0; border: none; border-top: 1px solid #e2e8f0;"></div>
+        </div>
+        <button class="action-btn" style="margin-top: 16px;" onclick="toggleShortcutsOverlay()">Close</button>
+    </div>
+    </div>
+
+    <table class="main-table" id="mainTable">
+        <tr>
+            <td id="leftPane">
+                <div class="left-pane-content">
+                    <div class="list-header">
+                        <h1>Prompts</h1>
+                        <div class="header-buttons">
+                            <div class="switch-container">
+                                <span class="switch-label">MD</span>
+                                <label class="switch">
+                                    <input type="checkbox" id="markdownToggle" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <button id="copyButton" class="action-btn" onclick="handleCopy()" disabled>Copy</button>
+                            <button class="action-btn" onclick="toggleShortcutsOverlay()">?</button>
+                            <button class="action-btn new-prompt-btn" onclick="createNewPrompt()">+</button>
+                        </div>
+                    </div>
+                    <div class="search-bar">
+                        <input 
+                            type="text" 
+                            id="searchInput" 
+                            class="search-input" 
+                            placeholder="Search prompts..."
+                            oninput="handleSearch()"
+                        >
+                    </div>
+                    <div id="tagContainer" class="tag-container">
+                        <input 
+                            type="text" 
+                            id="tagInput" 
+                            class="tag-input" 
+                            placeholder="Add tag..."
+                            onkeydown="handleTagInput(event)"
+                        >
+                    </div>
+                    <div class="prompt-list" id="promptList">
+                        <!-- Prompts will be displayed here -->
+                    </div>
+                    <div class="bottom-buttons">
+                        <input type="file" id="importInput" accept=".json">
+                        <button class="action-btn" onclick="handleImport()">Import Prompts</button>
+                        <button class="action-btn" onclick="handleExport()">Export Prompts</button>
+                    </div>
+                </div>
+            </td>
+            <td id="rightPane">
+                <div class="editor-content">
+                    <textarea 
+                        id="promptText" 
+                        placeholder="Enter your prompt text here..."
+                        oninput="handlePromptEdit()"
+                    ></textarea>
+                    <div id="markdownPreview" class="markdown-preview"></div>
+                </div>
+            </td>
+        </tr>
+    </table>
+    <div class="divider" id="divider"></div>
+
+    <script>
+        // State management
+        let currentPromptId = null;
+        let autoSaveTimeout = null;
+        let isDragging = false;
+        let startX = 0;
+        let startWidth = 0;
+        let draggedItem = null;
+        let searchQuery = '';
+        let selectedTags = new Set();
+
+        // Initialize marked.js options
+        marked.setOptions({
+            breaks: true,
+            gfm: true,
+            headerIds: false,
+            mangle: false
+        });
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            loadPrompts();
+            setupDivider();
+            calculateOptimalWidth();
+            setupImportInput();
+            setupKeyboardShortcuts();
+            setupDragAndDrop();
+            setupMarkdownToggle();
+            updateCopyButtonState();
+        });
+
+        function setupMarkdownToggle() {
+            const toggle = document.getElementById('markdownToggle');
+            const textarea = document.getElementById('promptText');
+            const preview = document.getElementById('markdownPreview');
+
+            toggle.addEventListener('change', () => {
+                if (toggle.checked) {
+                    textarea.classList.add('hidden');
+                    preview.classList.add('active');
+                    updateMarkdownPreview();
+                } else {
+                    textarea.classList.remove('hidden');
+                    preview.classList.remove('active');
+                }
+            });
+
+            // Initial state
+            if (toggle.checked) {
+                textarea.classList.add('hidden');
+                preview.classList.add('active');
+                updateMarkdownPreview();
+            }
+        }
+
+        function updateMarkdownPreview() {
+            const text = document.getElementById('promptText').value;
+            const preview = document.getElementById('markdownPreview');
+            preview.innerHTML = marked.parse(text);
+        }
+
+        function setupKeyboardShortcuts() {
+            document.addEventListener('keydown', (e) => {
+                // Don't trigger shortcuts when typing in input fields
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                    if (e.key === 'Escape') {
+                        e.target.blur();
+                    }
+                    return;
+                }
+
+                if (e.key === '?') {
+                    toggleShortcutsOverlay();
+                    e.preventDefault();
+                } else if (e.ctrlKey && e.key === 'n') {
+                    createNewPrompt();
+                    e.preventDefault();
+                } else if (e.ctrlKey && e.key === 'f') {
+                    document.getElementById('searchInput').focus();
+                    e.preventDefault();
+                } else if (e.ctrlKey && e.key === 'c') {
+                    handleCopy();
+                    e.preventDefault();
+                } else if (e.ctrlKey && e.key === 's') {
+                    handlePromptEdit(true);
+                    e.preventDefault();
+                } else if (e.ctrlKey && e.key === 'm') {
+                    const toggle = document.getElementById('markdownToggle');
+                    toggle.checked = !toggle.checked;
+                    toggle.dispatchEvent(new Event('change'));
+                    e.preventDefault();
+                } else if (e.key === 'Delete' && currentPromptId) {
+                    deletePrompt(currentPromptId);
+                    e.preventDefault();
+                } else if (e.key === 'Escape') {
+                    if (document.getElementById('shortcutsOverlay').style.display === 'flex') {
+                        toggleShortcutsOverlay();
+                    }
+                    e.preventDefault();
+                }
+            });
+        }
+
+        function setupDragAndDrop() {
+            const promptList = document.getElementById('promptList');
+
+            promptList.addEventListener('dragstart', (e) => {
+                if (!e.target.classList.contains('prompt-item')) return;
+                draggedItem = e.target;
+                e.target.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', ''); // Required for Firefox
+            });
+
+            promptList.addEventListener('dragend', (e) => {
+                if (!e.target.classList.contains('prompt-item')) return;
+                e.target.classList.remove('dragging');
+                draggedItem = null;
+            });
+
+            promptList.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                if (!draggedItem) return;
+
+                const targetItem = e.target.closest('.prompt-item');
+                if (!targetItem || targetItem === draggedItem) return;
+
+                const targetRect = targetItem.getBoundingClientRect();
+                const draggedIndex = Array.from(promptList.children).indexOf(draggedItem);
+                const targetIndex = Array.from(promptList.children).indexOf(targetItem);
+                
+                if (draggedIndex < targetIndex) {
+                    targetItem.parentNode.insertBefore(draggedItem, targetItem.nextSibling);
+                } else {
+                    targetItem.parentNode.insertBefore(draggedItem, targetItem);
+                }
+
+                // Update prompt order in storage
+                const prompts = PromptStorage.getPrompts();
+                const [movedPrompt] = prompts.splice(draggedIndex, 1);
+                prompts.splice(targetIndex, 0, movedPrompt);
+                PromptStorage.savePrompts(prompts);
+            });
+        }
+
+        function setupDivider() {
+            const divider = document.getElementById('divider');
+            const leftPane = document.getElementById('leftPane');
+            const table = document.getElementById('mainTable');
+
+            updateDividerPosition();
+
+            divider.addEventListener('mousedown', function(e) {
+                isDragging = true;
+                startX = e.pageX;
+                startWidth = leftPane.offsetWidth;
+                divider.classList.add('dragging');
+            });
+
+            document.addEventListener('mousemove', function(e) {
+                if (!isDragging) return;
+
+                const delta = e.pageX - startX;
+                const newWidth = Math.max(200, Math.min(startWidth + delta, table.offsetWidth - 200));
+                leftPane.style.width = newWidth + 'px';
+                updateDividerPosition();
+            });
+
+            document.addEventListener('mouseup', function() {
+                isDragging = false;
+                divider.classList.remove('dragging');
+            });
+
+            window.addEventListener('resize', updateDividerPosition);
+        }
+
+        function updateDividerPosition() {
+            const leftPane = document.getElementById('leftPane');
+            const tableRect = document.getElementById('mainTable').getBoundingClientRect();
+            const divider = document.getElementById('divider');
+            divider.style.left = (tableRect.left + leftPane.offsetWidth - 10) + 'px';
+        }
+
+        function calculateOptimalWidth() {
+            const prompts = PromptStorage.getPrompts();
+            if (prompts.length === 0) return;
+
+            const span = document.createElement('span');
+            span.style.visibility = 'hidden';
+            span.style.position = 'absolute';
+            span.style.fontSize = '16px';
+            span.style.fontWeight = '600';
+            document.body.appendChild(span);
+
+            const widths = prompts.map(prompt => {
+                span.textContent = prompt.title;
+                return span.offsetWidth;
+            });
+            document.body.removeChild(span);
+
+            const avgWidth = widths.reduce((a, b) => a + b, 0) / widths.length;
+            const optimalWidth = Math.max(300, avgWidth + 100);
+            
+            const leftPane = document.getElementById('leftPane');
+            const table = document.getElementById('mainTable');
+            const maxWidth = table.offsetWidth - 200;
+            leftPane.style.width = Math.min(optimalWidth, maxWidth) + 'px';
+            updateDividerPosition();
+        }
+
+        function toggleShortcutsOverlay() {
+            const overlay = document.getElementById('shortcutsOverlay');
+            overlay.style.display = overlay.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        async function handleCopy() {
+            const copyButton = document.getElementById('copyButton');
+            if (!currentPromptId) return;
+
+            const prompt = PromptStorage.getPrompt(currentPromptId);
+            if (!prompt) return;
+
+            try {
+                await navigator.clipboard.writeText(prompt.text);
+                
+                // Visual feedback
+                copyButton.classList.add('copy-feedback');
+                copyButton.textContent = 'Copied!';
+                
+                setTimeout(() => {
+                    copyButton.classList.remove('copy-feedback');
+                    copyButton.textContent = 'Copy';
+                }, 1000);
+            } catch (err) {
+                alert('Failed to copy text. Please try again.');
+            }
+        }
+
+        function handleImport() {
+            document.getElementById('importInput').click();
+        }
+
+        function setupImportInput() {
+            const importInput = document.getElementById('importInput');
+            importInput.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const prompts = JSON.parse(e.target.result);
+                            if (Array.isArray(prompts) && prompts.every(isValidPrompt)) {
+                                importPrompts(prompts);
+                            } else {
+                                alert('Invalid file format. Please ensure the file contains valid prompts.');
+                            }
+                        } catch (error) {
+                            alert('Error reading file. Please ensure it is a valid JSON file.');
+                        }
+                        importInput.value = '';
+                    };
+                    reader.readAsText(file);
+                }
+            });
+        }
+
+        function importPrompts(newPrompts) {
+            const existingPrompts = PromptStorage.getPrompts();
+            const updatedPrompts = [...existingPrompts];
+            
+            newPrompts.forEach(prompt => {
+                const id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+                updatedPrompts.push({
+                    ...prompt,
+                    id: id
+                });
+            });
+            
+            if (PromptStorage.savePrompts(updatedPrompts)) {
+                displayPrompts();
+                alert(`Successfully imported ${newPrompts.length} prompt(s)`);
+            } else {
+                alert('Error importing prompts. Please try again.');
+            }
+        }
+
+        function handleExport() {
+            const prompts = PromptStorage.getPrompts();
+            if (prompts.length === 0) {
+                alert('No prompts to export.');
+                return;
+            }
+
+            const exportPrompts = prompts.map(({ title, text, tags }) => ({ title, text, tags }));
+            const dataStr = JSON.stringify(exportPrompts, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'prompts_export.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function handleSearch() {
+            searchQuery = document.getElementById('searchInput').value.toLowerCase();
+            displayPrompts();
+        }
+
+        function handleTagInput(event) {
+            if (event.key === 'Enter' && event.target.value.trim()) {
+                const tagValue = event.target.value.trim();
+                if (currentPromptId) {
+                    const prompt = PromptStorage.getPrompt(currentPromptId);
+                    if (prompt) {
+                        const tags = new Set(prompt.tags || []);
+                        tags.add(tagValue);
+                        PromptStorage.updatePrompt(currentPromptId, {
+                            ...prompt,
+                            tags: Array.from(tags)
+                        });
+                        displayPrompts();
+                        updateTagDisplay();
+                    }
+                }
+                event.target.value = '';
+            }
+        }
+
+        function updateTagDisplay() {
+            const tagContainer = document.getElementById('tagContainer');
+            const tagInput = document.getElementById('tagInput');
+            const prompt = currentPromptId ? PromptStorage.getPrompt(currentPromptId) : null;
+            
+            // Clear existing tags
+            Array.from(tagContainer.children).forEach(child => {
+                if (child !== tagInput) {
+                    tagContainer.removeChild(child);
+                }
+            });
+
+            // Add current prompt's tags
+            if (prompt && prompt.tags) {
+                prompt.tags.forEach(tag => {
+                    const tagElement = document.createElement('div');
+                    tagElement.className = 'tag';
+                    tagElement.innerHTML = `
+                        ${escapeHtml(tag)}
+                        <span class="tag-remove" onclick="removeTag('${tag}')">×</span>
+                    `;
+                    tagContainer.insertBefore(tagElement, tagInput);
+                });
+            }
+        }
+
+        function removeTag(tag) {
+            if (currentPromptId) {
+                const prompt = PromptStorage.getPrompt(currentPromptId);
+                if (prompt) {
+                    const tags = new Set(prompt.tags || []);
+                    tags.delete(tag);
+                    PromptStorage.updatePrompt(currentPromptId, {
+                        ...prompt,
+                        tags: Array.from(tags)
+                    });
+                    displayPrompts();
+                    updateTagDisplay();
+                }
+            }
+        }
+
+        function deletePrompt(id) {
+            if (!id) return;
+            
+            if (confirm('Are you sure you want to delete this prompt?')) {
+                const prompts = PromptStorage.getPrompts();
+                const index = prompts.findIndex(p => p.id === id);
+                
+                if (index !== -1) {
+                    prompts.splice(index, 1);
+                    PromptStorage.savePrompts(prompts);
+                    
+                    // Clear editor if deleted prompt was selected
+                    if (id === currentPromptId) {
+                        currentPromptId = null;
+                        document.getElementById('promptText').value = '';
+                        updateCopyButtonState();
+                        updateTagDisplay();
+                        updateMarkdownPreview();
+                    }
+                    
+                    displayPrompts();
+                }
+            }
+        }
+
+        function isValidPrompt(prompt) {
+            return prompt && 
+                   typeof prompt.title === 'string' && 
+                   typeof prompt.text === 'string' &&
+                   (!prompt.tags || Array.isArray(prompt.tags));
+        }
+
+        function updateCopyButtonState() {
+            const copyButton = document.getElementById('copyButton');
+            const prompt = currentPromptId ? PromptStorage.getPrompt(currentPromptId) : null;
+            copyButton.disabled = !prompt || !prompt.text;
+        }
+
+        const PromptStorage = {
+            getPrompts() {
+                try {
+                    const stored = localStorage.getItem('prompts');
+                    return stored ? JSON.parse(stored) : [];
+                } catch (e) {
+                    console.error('Error reading prompts:', e);
+                    return [];
+                }
+            },
+
+            savePrompts(prompts) {
+                try {
+                    localStorage.setItem('prompts', JSON.stringify(prompts));
+                    return true;
+                } catch (e) {
+                    console.error('Error saving prompts:', e);
+                    return false;
+                }
+            },
+
+            getPrompt(id) {
+                return this.getPrompts().find(p => p.id === id);
+            },
+
+            addPrompt(prompt) {
+                const prompts = this.getPrompts();
+                const id = Date.now().toString();
+                prompts.push({ ...prompt, id });
+                this.savePrompts(prompts);
+                return id;
+            },
+
+            updatePrompt(id, newPrompt) {
+                const prompts = this.getPrompts();
+                const index = prompts.findIndex(p => p.id === id);
+                if (index !== -1) {
+                    prompts[index] = { ...newPrompt, id };
+                    return this.savePrompts(prompts);
+                }
+                return false;
+            }
+        };
+
+        function createNewPrompt() {
+            const id = PromptStorage.addPrompt({
+                title: 'New Prompt',
+                text: '',
+                tags: []
+            });
+            loadPromptToEditor(id);
+            displayPrompts();
+        }
+
+        function handlePromptEdit(forceSave = false) {
+            if (!currentPromptId) return;
+
+            if (autoSaveTimeout) {
+                clearTimeout(autoSaveTimeout);
+            }
+
+            const saveChanges = () => {
+                const text = document.getElementById('promptText').value;
+                const lines = text.split('\n');
+                const firstLine = lines[0].trim();
+                
+                const prompt = PromptStorage.getPrompt(currentPromptId);
+                if (prompt) {
+                    const title = firstLine || 'New Prompt';
+                    PromptStorage.updatePrompt(currentPromptId, {
+                        ...prompt,
+                        title: title,
+                        text: text
+                    });
+                    displayPrompts();
+                    updateCopyButtonState();
+                    updateMarkdownPreview();
+                }
+            };
+
+            if (forceSave) {
+                saveChanges();
+            } else {
+                autoSaveTimeout = setTimeout(saveChanges, 500);
+            }
+        }
+
+        function loadPrompts() {
+            displayPrompts();
+        }
+
+        function displayPrompts() {
+            const promptList = document.getElementById('promptList');
+            let prompts = PromptStorage.getPrompts();
+            
+            // Filter prompts based on search query
+            if (searchQuery) {
+                prompts = prompts.filter(prompt => 
+                    prompt.title.toLowerCase().includes(searchQuery) ||
+                    prompt.text.toLowerCase().includes(searchQuery) ||
+                    (prompt.tags && prompt.tags.some(tag => tag.toLowerCase().includes(searchQuery)))
+                );
+            }
+
+            // Filter prompts based on selected tags
+            if (selectedTags.size > 0) {
+                prompts = prompts.filter(prompt =>
+                    prompt.tags && selectedTags.every(tag => prompt.tags.includes(tag))
+                );
+            }
+            
+            promptList.innerHTML = '';
+            
+            prompts.forEach((prompt) => {
+                const promptDiv = document.createElement('div');
+                promptDiv.className = `prompt-item ${prompt.id === currentPromptId ? 'selected' : ''}`;
+                promptDiv.setAttribute('draggable', 'true');
+                
+                // Create HTML structure
+                let innerHTML = `
+                    <div class="prompt-title" onclick="startTitleEdit(event, '${prompt.id}')">${marked.parse(prompt.title)}</div>
+                    <div class="prompt-preview">${getPreviewContent(prompt)}</div>
+                    <button class="delete-btn" onclick="deletePrompt('${prompt.id}')" title="Delete prompt">×</button>
+                `;
+
+                // Add tags if they exist
+                if (prompt.tags && prompt.tags.length > 0) {
+                    innerHTML += `
+                        <div class="prompt-tags">
+                            ${prompt.tags.map(tag => `
+                                <span class="prompt-tag">${escapeHtml(tag)}</span>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+
+                promptDiv.innerHTML = innerHTML;
+                
+                promptDiv.onclick = (e) => {
+                    // Ignore clicks on the delete button or title
+                    if (!e.target.classList.contains('delete-btn') && 
+                        !e.target.classList.contains('prompt-title')) {
+                        loadPromptToEditor(prompt.id);
+                    }
+                };
+                promptList.appendChild(promptDiv);
+            });
+
+            calculateOptimalWidth();
+        }
+
+        function getPreviewContent(prompt) {
+            const lines = prompt.text.split('\n');
+            const firstLine = lines[0].trim();
+            
+            // If first line matches title, remove it from preview
+            if (firstLine === prompt.title) {
+                return marked.parse(lines.slice(1).join('\n').trim());
+            }
+            
+            return marked.parse(prompt.text);
+        }
+
+        function startTitleEdit(event, id) {
+            event.stopPropagation();
+            const titleDiv = event.target;
+            const currentTitle = titleDiv.textContent;
+            
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = currentTitle;
+            input.className = 'prompt-title-edit';
+            
+            const tempSpan = document.createElement('span');
+            tempSpan.style.visibility = 'hidden';
+            tempSpan.style.position = 'absolute';
+            tempSpan.style.fontSize = window.getComputedStyle(titleDiv).fontSize;
+            tempSpan.style.fontFamily = window.getComputedStyle(titleDiv).fontFamily;
+            tempSpan.style.fontWeight = window.getComputedStyle(titleDiv).fontWeight;
+            tempSpan.textContent = currentTitle;
+            document.body.appendChild(tempSpan);
+            
+            const width = tempSpan.offsetWidth + 20;
+            input.style.width = Math.max(100, width) + 'px';
+            document.body.removeChild(tempSpan);
+            
+            input.onblur = () => finishTitleEdit(id, input);
+            input.onkeydown = (e) => {
+                if (e.key === 'Enter') {
+                    input.blur();
+                } else if (e.key === 'Escape') {
+                    input.value = currentTitle;
+                    input.blur();
+                }
+            };
+            
+            titleDiv.replaceWith(input);
+            input.focus();
+            input.select();
+        }
+
+        function finishTitleEdit(id, input) {
+            const prompt = PromptStorage.getPrompt(id);
+            if (prompt) {
+                const newTitle = input.value.trim() || 'New Prompt';
+                PromptStorage.updatePrompt(id, {
+                    ...prompt,
+                    title: newTitle
+                });
+                displayPrompts();
+            }
+        }
+
+        function loadPromptToEditor(id) {
+            const prompt = PromptStorage.getPrompt(id);
+            
+            if (prompt) {
+                document.getElementById('promptText').value = prompt.text;
+                currentPromptId = id;
+                displayPrompts();
+                updateCopyButtonState();
+                updateTagDisplay();
+                updateMarkdownPreview();
+            }
+        }
+
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+        
+        function switchModalTab(tab) {
+            const shortcutsGrid = document.getElementById('shortcutsGrid');
+            const markdownGuide = document.getElementById('markdownGuide');
+            const tabs = document.querySelectorAll('.modal-tab');
+            
+            tabs.forEach(t => t.classList.remove('active'));
+            if (tab === 'shortcuts') {
+                shortcutsGrid.style.display = 'grid';
+                markdownGuide.classList.remove('active');
+                tabs[0].classList.add('active');
+            } else {
+                shortcutsGrid.style.display = 'none';
+                markdownGuide.classList.add('active');
+                tabs[1].classList.add('active');
+            }
+        }
+    </script>
+</body>
+</html>
