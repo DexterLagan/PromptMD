@@ -75,4 +75,4 @@ Works in all modern browsers that support:
 
 ## License
 
-MIT
+PromptMD is free software; see [LICENSE](https://github.com/DexterLagan/PromptMD/blob/main/LICENSE) for more details.
