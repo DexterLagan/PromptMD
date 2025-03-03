@@ -7,6 +7,13 @@ PromptMD is a lightweight, browser-based prompt management tool that helps you c
 ## Downloads
 You can <b>download</b> the latest release [HERE](https://github.com/DexterLagan/PromptMD/releases/).
 
+## Version History
+
+- v1.01
+  - added automatic truncation of long prompt titles
+  - editor switches to edit mode upon creating a new prompt
+- v1.0 - initial release
+
 ## Features
 
 ### Core Functionality
@@ -42,6 +49,8 @@ You can <b>download</b> the latest release [HERE](https://github.com/DexterLagan
 - Drag-and-drop reordering
 - One-click copying to clipboard
 - Quick access help modal
+- Automatically truncate overly long prompt titles
+- Automatically disables MD mode for new prompts
 
 ## Getting Started
 
