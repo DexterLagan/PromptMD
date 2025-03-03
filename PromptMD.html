@@ -1191,6 +1191,12 @@ code block
                 text: '',
                 tags: []
             });
+            
+            // Turn off MD mode
+            const markdownToggle = document.getElementById('markdownToggle');
+            markdownToggle.checked = false;
+            markdownToggle.dispatchEvent(new Event('change'));
+            
             loadPromptToEditor(id);
             displayPrompts();
         }
@@ -1209,7 +1215,7 @@ code block
                 
                 const prompt = PromptStorage.getPrompt(currentPromptId);
                 if (prompt) {
-                    const title = firstLine || 'New Prompt';
+                    const title = firstLine ? (firstLine.length > 30 ? firstLine.substring(0, 30) + '...' : firstLine) : 'New Prompt';
                     PromptStorage.updatePrompt(currentPromptId, {
                         ...prompt,
                         title: title,
