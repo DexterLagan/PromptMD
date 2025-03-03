@@ -60,10 +60,10 @@ You can <b>download</b> the latest release [HERE](https://github.com/DexterLagan
 
 No installation, no dependencies, no setup required.
 
-## Known Issues
+## About Prompt Titles
 
-Problem: PromptMD automatically labels each prompt using the first line of its content. If the first line is long, it may make the left panel become too large.
-Solution: make sure you enter the title of your prompt on the first line, and write the rest below.
+PromptMD automatically labels each prompt using the first line of its content.
+If the first line is long, it will truncate it.
 
 ## Keyboard Shortcuts
 
